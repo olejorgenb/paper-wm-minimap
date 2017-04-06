@@ -23,6 +23,7 @@
 
 Display *dpy;
 ClutterActor *stage;
+ClutterActor *minimap;
 int stage_w, stage_h;
 Window stage_win;
 
@@ -96,7 +97,7 @@ add_xwindow (Window w)
     tex = g_object_new (texture_pixmap_type, "window", w,
                         "automatic-updates", TRUE, NULL);
 
-    clutter_container_add_actor (CLUTTER_CONTAINER (stage), tex);
+    clutter_actor_add_child (CLUTTER_CONTAINER (minimap), tex);
     clutter_actor_show (tex);
     window_position_changed(tex, NULL, NULL);
 
@@ -170,7 +171,11 @@ main (int argc, char *argv[])
     // Init global display
     dpy = clutter_x11_get_default_display ();
 
+    int scale = 0.25;
     prep_stage();
+    minimap = clutter_actor_new();
+    clutter_actor_set_scale(minimap, scale, scale);
+    clutter_actor_add_child (CLUTTER_CONTAINER (stage), minimap);
 
     for(int i = 1; i < argc; i++) {
         Window w;

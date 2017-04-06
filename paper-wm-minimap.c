@@ -33,9 +33,11 @@ void
 prep_clutter (int *argc, char ***argv)
 {
     clutter_init (argc, argv);
-    
-    if (getenv ("NO_TFP"))
+
+    if (getenv ("NO_TFP")) {
+        printf("no tfp");
         texture_pixmap_type = CLUTTER_X11_TYPE_TEXTURE_PIXMAP;
+      }
     else
         texture_pixmap_type = CLUTTER_GLX_TYPE_TEXTURE_PIXMAP;
 }
@@ -98,6 +100,9 @@ add_xwindow (Window w)
                         "automatic-updates", TRUE, NULL);
 
     clutter_actor_add_child (CLUTTER_CONTAINER (minimap), tex);
+    /* gfloat width; gfloat height; */
+    /* clutter_actor_get_transformed_size(tex, &width, &height); */
+    /* clutter_actor_set_size(stage, width*20, height); */
     clutter_actor_show (tex);
     window_position_changed(tex, NULL, NULL);
 
@@ -171,13 +176,19 @@ main (int argc, char *argv[])
     // Init global display
     dpy = clutter_x11_get_default_display ();
 
-    int scale = 0.25;
+
+    float scale;
+    sscanf(argv[1], "%f", &scale);
+    float rotation;
+    sscanf(argv[2], "%f", &rotation);
+    printf("%f\n", scale);
     prep_stage();
     minimap = clutter_actor_new();
     clutter_actor_set_scale(minimap, scale, scale);
+    clutter_actor_set_rotation_angle(minimap, CLUTTER_Z_AXIS, rotation);
     clutter_actor_add_child (CLUTTER_CONTAINER (stage), minimap);
 
-    for(int i = 1; i < argc; i++) {
+    for(int i = 3; i < argc; i++) {
         Window w;
         parse_xid(argv[i], &w);
         printf("Added %d\n", w);

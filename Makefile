@@ -3,7 +3,7 @@
 PREFIX=/usr/local
 
 # clutter includes most stuff needed
-FLAGS=`pkg-config --cflags --libs x11 clutter-1.0` 
+FLAGS=`pkg-config --cflags --libs x11 clutter-glx-1.0` 
 
 paper-wm-minimap: paper-wm-minimap.c
 	gcc paper-wm-minimap.c -o paper-wm-minimap $(FLAGS) 

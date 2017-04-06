@@ -6,6 +6,11 @@
  * I release this code into the public domain.
  */
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+
 #include <X11/Xlib.h>
 #include <X11/extensions/Xcomposite.h>
 #include <X11/extensions/Xfixes.h>
@@ -63,6 +68,8 @@ event_dispatch (GSource *source, GSourceFunc callback, gpointer user_data)
     ClutterEvent *event;
     XEvent xevent;
 
+    printf("dispatch\n");
+
     clutter_threads_enter ();
 
     while (!clutter_events_pending () && XPending (dpy)) {
@@ -96,9 +103,10 @@ static GSourceFuncs event_funcs = {
 void
 prep_clutter (int *argc, char ***argv)
 {
-    clutter_x11_disable_event_retrieval ();
+    /* clutter_x11_disable_event_retrieval (); */
     clutter_init (argc, argv);
     clutter_x11_add_filter (event_filter, NULL);
+
     
     if (getenv ("NO_TFP"))
         texture_pixmap_type = CLUTTER_X11_TYPE_TEXTURE_PIXMAP;
@@ -114,6 +122,15 @@ prep_root (void)
 
     XCompositeRedirectSubwindows (dpy, root, CompositeRedirectAutomatic);
     XSelectInput (dpy, root, SubstructureNotifyMask);
+}
+
+void prep_window(Window w)
+{
+  dpy = clutter_x11_get_default_display ();
+  /* XCompositeRedirectSubwindows (dpy, w, CompositeRedirectAutomatic); */
+  /* XCompositeRedirectWindow (dpy, w, CompositeRedirectManual); */
+  /* XSelectInput (dpy, w, StructureNotifyMask); */
+  printf("%d %d\n", dpy, w);
 }
 
 void
@@ -152,6 +169,14 @@ prep_stage (void)
     allow_input_passthrough (stage_win);
     
     clutter_actor_show_all (stage);
+}
+
+void prep_stage_dummy()
+{
+  stage = clutter_stage_get_default ();
+  clutter_stage_set_user_resizable(stage, TRUE);
+  stage_win = clutter_x11_get_stage_window (CLUTTER_STAGE (stage));
+  clutter_actor_show_all (stage);
 }
 
 void
@@ -200,6 +225,7 @@ window_position_changed (ClutterActor *tex, GParamSpec *pspec, gpointer unused)
                   "window-y", &window_y, NULL);
     if (x == window_x && y == window_y)
         return;
+    printf("Position (%d,%d), (%d,%d)\n", x, y, window_x, window_y);
     
     clutter_actor_set_position (tex, window_x, window_y);
 }
@@ -211,6 +237,7 @@ window_mapped_changed (ClutterActor *tex, GParamSpec *pspec, gpointer unused)
     g_object_get (tex, "mapped", &mapped, NULL);
 
     if (mapped){
+        printf("mapped\n");
         clutter_container_add_actor (CLUTTER_CONTAINER (stage), tex);
         clutter_actor_show (tex);
         window_position_changed (tex, NULL, NULL);
@@ -241,6 +268,13 @@ window_created (Window w)
     tex = g_object_new (texture_pixmap_type, "window", w,
                         "automatic-updates", TRUE, NULL);
 
+    clutter_container_add_actor (CLUTTER_CONTAINER (stage), tex);
+    clutter_actor_show (tex);
+    /* clutter_actor_set_position(tex, 10, 10); */
+    window_position_changed(tex, NULL, NULL);
+
+    /* return; */
+
     g_signal_connect (tex, "notify::mapped", G_CALLBACK (window_mapped_changed), NULL);
     g_signal_connect (tex, "notify::destroyed", G_CALLBACK (window_destroyed), NULL);
     g_signal_connect (tex, "notify::window-x", G_CALLBACK (window_position_changed), NULL);
@@ -268,45 +302,65 @@ static ClutterX11FilterReturn
 event_filter (XEvent *ev, ClutterEvent *cev, gpointer unused)
 {
     switch (ev->type) {
-    case CreateNotify:
-        window_created (ev->xcreatewindow.window);
-        return CLUTTER_X11_FILTER_REMOVE;
-
-    case KeyPress:
-        if (handle_keypress (ev->xkey.window, ev->xkey.state, ev->xkey.keycode))
-            return CLUTTER_X11_FILTER_REMOVE;
-        else
-            return CLUTTER_X11_FILTER_CONTINUE;
-
     case ConfigureNotify:
-    case MapNotify:
-    case UnmapNotify:
-    case DestroyNotify:
-    case ClientMessage:
-    case PropertyNotify:
-    case ButtonPress:
-    case EnterNotify:
-    case LeaveNotify:
-    case FocusIn:
-    case KeyRelease:
-    case VisibilityNotify:
-    case ColormapNotify:
-    case MappingNotify:
-    case MotionNotify:
-    case SelectionNotify:
+        {
+            printf("event_filter pos: %d, %d\n", ev->xconfigure.x, ev->xconfigure.y);
+            return CLUTTER_X11_FILTER_CONTINUE;
+        }
+    /* case MapNotify: */
+    /* case UnmapNotify: */
+    /* case DestroyNotify: */
+    /* case ClientMessage: */
+    /* case PropertyNotify: */
+    /* case ButtonPress: */
+    /* case EnterNotify: */
+    /* case LeaveNotify: */
+    /* case FocusIn: */
+    /* case KeyRelease: */
+    /* case VisibilityNotify: */
+    /* case ColormapNotify: */
+    /* case MappingNotify: */
+    /* case MotionNotify: */
+    /* case SelectionNotify: */
     default:
         return CLUTTER_X11_FILTER_CONTINUE;
     }
+}
+
+
+static int
+parse_xid(const char *id_str, XID *ret)
+{
+  XID xid = 0;
+  sscanf(id_str, "0x%x", &xid);
+  if (!xid)
+    sscanf(id_str, "%u", &xid);
+  if (!xid) {
+    return 0;
+  }
+  *ret = xid;
+  return 1;
 }
 
 int
 main (int argc, char *argv[])
 {
     prep_clutter (&argc, &argv);
-    prep_root ();
-    prep_overlay ();
-    prep_stage ();
-    prep_input ();
+    /* prep_root (); */
+
+    // Init global display
+    dpy = clutter_x11_get_default_display ();
+
+    prep_stage_dummy();
+
+
+    for(int i = 1; i < argc; i++) {
+        Window w;
+        printf("%s", argv[i]);
+        parse_xid(argv[i], &w);
+        printf("added %d\n", w);
+        window_created (w);
+    }
 
     g_main_loop_run (g_main_loop_new (NULL, FALSE));
 

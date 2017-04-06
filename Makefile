@@ -1,13 +1,13 @@
-.DEFAULT_GOAL := mini-clutter-wm
+.DEFAULT_GOAL := paper-wm-minimap
 
 PREFIX=/usr/local
 
 # clutter includes most stuff needed
 FLAGS=`pkg-config --cflags --libs x11 clutter-1.0` 
 
-mini-clutter-wm: mini-clutter-wm.c
-	gcc mini-clutter-wm.c -o mini-clutter-wm $(FLAGS) 
+paper-wm-minimap: paper-wm-minimap.c
+	gcc paper-wm-minimap.c -o paper-wm-minimap $(FLAGS) 
 
 install:
 	mkdir -p $(PREFIX)/bin
-	install mini-clutter-wm $(PREFIX)/bin/
+	install paper-wm-minimap $(PREFIX)/bin/

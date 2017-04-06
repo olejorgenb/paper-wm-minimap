@@ -3,7 +3,7 @@ with import <nixpkgs> {};
 
 stdenv.mkDerivation rec {
   version = "0.x";
-  name = "mini-clutter-wm-${version}";
+  name = "paper-wm-minimap-${version}";
 
   src = ./.;
 
